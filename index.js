@@ -312,7 +312,11 @@ function getLights(callback) {
     log.debug('hue > getLights');
     hue.lights((err, res) => {
         if (err) {
-            log.error('getLights', err.toString());
+            const errStr = err.toString();
+            if (errStr === 'Error: read ECONNRESET') {
+                process.exit(1);
+            }
+            log.error('getLights', errStr);
             bridgeDisconnect();
         } else if (res.lights && res.lights.length > 0) {
             bridgeConnect();
