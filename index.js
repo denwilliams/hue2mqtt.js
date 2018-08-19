@@ -24,7 +24,7 @@ const lightStates = {};
 
 function start() {
     log.setLevel(config.verbosity);
-    log.info(pkg.name + ' ' + pkg.version + ' starting', new Date());
+    log.info(pkg.name + ' ' + pkg.version + ' starting');
 
     if (config.bridge) {
         bridgeAddress = config.bridge;
@@ -315,7 +315,7 @@ function getLights(callback) {
             const errStr = err.toString();
             log.error('getLights', errStr);
             if (errStr === 'Error: read ECONNRESET') {
-                log.error('Ending process', new Date());
+                log.error('Ending process');
                 process.exit(1);
             }
             bridgeDisconnect();
