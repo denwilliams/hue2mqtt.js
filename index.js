@@ -4,7 +4,9 @@ const log = require('yalm');
 const oe = require('obj-ease');
 const Mqtt = require('mqtt');
 const Hue = require('node-hue-api');
+const queue = require('queue');
 const pjson = require('persist-json')('hue2mqtt');
+
 const hsl2rgb = require('./hsl2rgb.js');
 const config = require('./config.js');
 const pkg = require('./package.json');
@@ -21,6 +23,9 @@ const pollingInterval = (config.pollingInterval || 10) * 1000;
 const groupNames = {};
 const lightNames = {};
 const lightStates = {};
+const q = queue();
+q.autostart = true;
+q.concurrency = 1;
 
 function start() {
     log.setLevel(config.verbosity);
@@ -139,19 +144,25 @@ function setGroupLightState(name, state) {
     if (id) {
         clearTimeout(pollingTimer);
         log.info('hue > setGroupLightState', name , id, state);
-        hue.setGroupLightState(id, state, (err, res) => {
-            if (err) {
+        
+        q.push(() => 
+            hue.setGroupLightState(id, state)
+            .then(res => {
+                if (!res) {
+                    log.error('setGroupLightState', name, 'failed');
+                }
+                getLights();
+            })
+            .catch(err => {
                 log.error('setGroupLightState', name, err.toString());
                 if (err.message.endsWith('is not modifiable. Device is set to off.')) {
                     bridgeConnect();
                 } else {
                     bridgeDisconnect();
                 }
-            } else if (!res) {
-                log.error('setGroupLightState', name, 'failed');
-            }
-            getLights();
-        });
+            })
+        );
+
         setTimeout(() => {
             clearTimeout(pollingTimer);
             getLights();
@@ -168,22 +179,27 @@ function setLightState(name, state) {
     }
     if (id) {
         log.info('hue > setLightState', name, id, state);
-        hue.setLightState(id, state, (err, res) => {
-            if (err) {
+
+        q.push(() => 
+            hue.setLightState(id, state)
+            .then(res => {
+                if (res) {
+                    bridgeConnect();
+                    publishChanges({id, state, name});
+                } else {
+                    bridgeConnect();
+                    log.error('setLightState', name, 'failed');
+                }
+            })
+            .catch(err => {
                 log.error('setLightState', name, err.toString());
                 if (err.message.endsWith('is not modifiable. Device is set to off.')) {
                     bridgeConnect();
                 } else {
                     bridgeDisconnect();
                 }
-            } else if (res) {
-                bridgeConnect();
-                publishChanges({id, state, name});
-            } else {
-                bridgeConnect();
-                log.error('setLightState', name, 'failed');
-            }
-        });
+            })
+        );
     } else {
         log.error('unknown light', name);
     }
@@ -310,8 +326,26 @@ function bridgeDisconnect() {
 
 function getLights(callback) {
     log.debug('hue > getLights');
-    hue.lights((err, res) => {
-        if (err) {
+
+    q.push(() => 
+        hue.lights()
+        .then(res => {
+            if (res.lights && res.lights.length > 0) {
+                bridgeConnect();
+                res.lights.forEach(light => {
+                    lightNames[light.name] = light.id;
+                    publishChanges(light);
+                });
+                if (typeof callback === 'function') {
+                    log.debug('got', res.lights.length, 'lights');
+                }
+            }
+            if (typeof callback === 'function') {
+                callback();
+            }
+            pollingTimer = setTimeout(getLights, pollingInterval);
+        })
+        .catch(err => {
             const errStr = err.toString();
             log.error('getLights', errStr);
             if (errStr === 'Error: read ECONNRESET') {
@@ -319,39 +353,31 @@ function getLights(callback) {
                 process.exit(1);
             }
             bridgeDisconnect();
-        } else if (res.lights && res.lights.length > 0) {
-            bridgeConnect();
-            res.lights.forEach(light => {
-                lightNames[light.name] = light.id;
-                publishChanges(light);
-            });
-            if (typeof callback === 'function') {
-                log.debug('got', res.lights.length, 'lights');
-            }
-        }
-        if (typeof callback === 'function') {
-            callback();
-        }
-        pollingTimer = setTimeout(getLights, pollingInterval);
-    });
+        })
+    );
 }
 
 function getGroups(callback) {
     log.debug('hue > getGroups');
-    hue.groups((err, res) => {
-        if (err) {
+
+    q.push(() => 
+        hue.groups()
+        .then((res) => {
+            if (res && res.length > 0) {
+                log.debug('got', res.length, 'groups');
+                res.forEach(group => {
+                    groupNames[group.name] = group.id;
+                });
+            }
+            if (typeof callback === 'function') {
+                callback();
+            }
+        })
+        .catch(err => {
             log.error(err.toString());
             bridgeDisconnect();
-        } else if (res && res.length > 0) {
-            log.debug('got', res.length, 'groups');
-            res.forEach(group => {
-                groupNames[group.name] = group.id;
-            });
-        }
-        if (typeof callback === 'function') {
-            callback();
-        }
-    });
+        })
+    );
 }
 
 function publishChanges(light) {
