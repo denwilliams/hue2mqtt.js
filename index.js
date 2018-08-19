@@ -24,7 +24,7 @@ const lightStates = {};
 
 function start() {
     log.setLevel(config.verbosity);
-    log.info(pkg.name + ' ' + pkg.version + ' starting');
+    log.info(pkg.name + ' ' + pkg.version + ' starting', new Date());
 
     if (config.bridge) {
         bridgeAddress = config.bridge;
@@ -138,7 +138,7 @@ function setGroupLightState(name, state) {
     const id = groupNames[name] || name;
     if (id) {
         clearTimeout(pollingTimer);
-        log.debug('hue > setGroupLightState', id, state);
+        log.info('hue > setGroupLightState', name , id, state);
         hue.setGroupLightState(id, state, (err, res) => {
             if (err) {
                 log.error('setGroupLightState', name, err.toString());
@@ -167,10 +167,10 @@ function setLightState(name, state) {
         id = name;
     }
     if (id) {
-        log.debug('hue > setLightState', id, state);
+        log.info('hue > setLightState', name, id, state);
         hue.setLightState(id, state, (err, res) => {
             if (err) {
-                log.error('setLightState', err.toString());
+                log.error('setLightState', name, err.toString());
                 if (err.message.endsWith('is not modifiable. Device is set to off.')) {
                     bridgeConnect();
                 } else {
@@ -313,10 +313,11 @@ function getLights(callback) {
     hue.lights((err, res) => {
         if (err) {
             const errStr = err.toString();
+            log.error('getLights', errStr);
             if (errStr === 'Error: read ECONNRESET') {
+                log.error('Ending process', new Date());
                 process.exit(1);
             }
-            log.error('getLights', errStr);
             bridgeDisconnect();
         } else if (res.lights && res.lights.length > 0) {
             bridgeConnect();
