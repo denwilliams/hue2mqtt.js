@@ -88,7 +88,7 @@ function start() {
 
     mqtt.on('message', (topic, payload) => {
         payload = payload.toString();
-        log.debug('mqtt <', topic, payload);
+        log.info('mqtt <', topic, payload);
 
         if (payload.indexOf('{') !== -1) {
             try {
