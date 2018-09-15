@@ -169,7 +169,7 @@ function setGroupLightState(name, state) {
           }
           //   q.push(() => getLights());
           getLights();
-          //   return delay500ms();
+          return delay500ms();
         })
         .catch(err => {
           log.error("setGroupLightState", name, err.toString());
@@ -211,7 +211,7 @@ function setLightState(name, state) {
             bridgeConnect();
             log.error("setLightState", name, "failed");
           }
-          //   return delay500ms();
+          return delay500ms();
         })
         .catch(err => {
           log.error("setLightState", name, err.toString());
