@@ -167,7 +167,8 @@ function setGroupLightState(name, state) {
           if (!res) {
             log.error("setGroupLightState", name, "failed");
           }
-          q.push(() => getLights());
+          //   q.push(() => getLights());
+          getLights();
           //   return delay500ms();
         })
         .catch(err => {
