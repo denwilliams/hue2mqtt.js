@@ -28,7 +28,7 @@ const q = queue();
 q.autostart = true;
 q.concurrency = 1;
 
-setInterval(() => console.log(q.length), 10000);
+setInterval(() => console.log(q.length), 60000);
 
 function start() {
   log.setLevel(config.verbosity);
