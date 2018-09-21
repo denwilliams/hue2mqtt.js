@@ -28,6 +28,8 @@ const q = queue();
 q.autostart = true;
 q.concurrency = 1;
 
+setInterval(() => console.log(q.length), 10000);
+
 function start() {
   log.setLevel(config.verbosity);
   log.info(pkg.name + " " + pkg.version + " starting");
