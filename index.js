@@ -354,7 +354,7 @@ function bridgeDisconnect() {
 }
 
 function getLights(callback) {
-  log.debug("hue > getLights");
+  log.info("hue > getLights");
 
   q.push(() =>
     hue
@@ -388,7 +388,7 @@ function getLights(callback) {
 }
 
 function getGroups(callback) {
-  log.debug("hue > getGroups");
+  log.info("hue > getGroups");
 
   q.push(() =>
     hue
