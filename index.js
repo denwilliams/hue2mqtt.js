@@ -10,7 +10,7 @@ const pjson = require("persist-json")("hue2mqtt");
 const hsl2rgb = require("./hsl2rgb.js");
 const config = require("./config.js");
 const pkg = require("./package.json");
-const delay500ms = () => new Promise(resolve => setTimeout(resolve, 500));
+const delay200ms = () => new Promise(resolve => setTimeout(resolve, 200));
 
 let mqtt;
 let mqttConnected = false;
@@ -171,7 +171,7 @@ function setGroupLightState(name, state) {
           }
           //   q.push(() => getLights());
           getLights();
-          return delay500ms();
+          return delay200ms();
         })
         .catch(err => {
           log.error("setGroupLightState", name, err.toString());
@@ -213,7 +213,7 @@ function setLightState(name, state) {
             bridgeConnect();
             log.error("setLightState", name, "failed");
           }
-          return delay500ms();
+          return delay200ms();
         })
         .catch(err => {
           log.error("setLightState", name, err.toString());
