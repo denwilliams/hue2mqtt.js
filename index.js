@@ -6,7 +6,7 @@ const Mqtt = require("mqtt");
 const Hue = require("node-hue-api");
 const queue = require("queue");
 const pjson = require("persist-json")("hue2mqtt");
-
+const throttle = require("lodash.throttle");
 const hsl2rgb = require("./hsl2rgb.js");
 const config = require("./config.js");
 const pkg = require("./package.json");
@@ -159,7 +159,6 @@ function start() {
 function setGroupLightState(name, state) {
   const id = groupNames[name] || name;
   if (id) {
-    clearTimeout(pollingTimer);
     log.info("hue > setGroupLightState", name, id, state);
 
     q.push(() =>
@@ -169,7 +168,6 @@ function setGroupLightState(name, state) {
           if (!res) {
             log.error("setGroupLightState", name, "failed");
           }
-          //   q.push(() => getLights());
           getLights();
           return delay200ms();
         })
@@ -185,10 +183,7 @@ function setGroupLightState(name, state) {
         })
     );
 
-    setTimeout(() => {
-      clearTimeout(pollingTimer);
-      getLights();
-    }, pollingInterval);
+    getLights();
   } else {
     log.error("unknown group", name);
   }
@@ -313,7 +308,8 @@ function initApi() {
         ) {
           log.warn("bridge update available:", bridgeConfig.swupdate.text);
         }
-        getLights(getGroups);
+        getGroups();
+        getLights();
       }
     }
   });
@@ -353,10 +349,14 @@ function bridgeDisconnect() {
   }
 }
 
-function getLights(callback) {
-  log.info("hue > getLights");
+setInterval(() => {
+  getLights();
+}, pollingInterval);
 
-  q.push(() =>
+const getLights = throttle(
+  function getLights() {
+    log.info("hue > getLights");
+
     hue
       .lights()
       .then(res => {
@@ -366,14 +366,7 @@ function getLights(callback) {
             lightNames[light.name] = light.id;
             publishChanges(light);
           });
-          if (typeof callback === "function") {
-            log.debug("got", res.lights.length, "lights");
-          }
         }
-        if (typeof callback === "function") {
-          callback();
-        }
-        pollingTimer = setTimeout(getLights, pollingInterval);
       })
       .catch(err => {
         const errStr = err.toString();
@@ -383,9 +376,11 @@ function getLights(callback) {
           process.exit(1);
         }
         bridgeDisconnect();
-      })
-  );
-}
+      });
+  },
+  1000,
+  { leading: false, trailing: true }
+);
 
 function getGroups(callback) {
   log.info("hue > getGroups");
