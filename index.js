@@ -107,8 +107,6 @@ function start() {
     payload = payload.toString();
     log.info("mqtt <", topic, payload);
 
-    if (payload === null) return;
-
     if (payload.indexOf("{") !== -1) {
       try {
         payload = JSON.parse(payload);
@@ -130,7 +128,7 @@ function start() {
           case "lights":
             if (datapoint) {
               setDatapoint(type, name, datapoint, payload);
-            } else if (typeof payload === "object" && payload !== null) {
+            } else if (typeof payload === "object") {
               setLightState(name, payload);
             } else {
               setValue(type, name, payload);
@@ -140,7 +138,7 @@ function start() {
           case "groups":
             if (datapoint) {
               setDatapoint(type, name, datapoint, payload);
-            } else if (typeof payload === "object" && payload !== null) {
+            } else if (typeof payload === "object") {
               setGroupLightState(name, payload);
             } else {
               setValue(type, name, payload);
@@ -239,12 +237,15 @@ function setDatapoint(type, name, datapoint, payload) {
 }
 
 function setValue(type, name, payload) {
-  if (payload === null) return; // ignore
   if (payload === false) {
     payload = { on: false };
   } else if (payload === true) {
     payload = { on: true };
   } else {
+    if (isNaN(payload)) {
+      // Ignore
+      return;
+    }
     payload = parseInt(payload, 10);
     if (payload === 0) {
       payload = { on: false, bri: 0 };
