@@ -237,6 +237,7 @@ function setDatapoint(type, name, datapoint, payload) {
 }
 
 function setValue(type, name, payload) {
+  if (payload === null) return; // ignore
   if (payload === false) {
     payload = { on: false };
   } else if (payload === true) {
