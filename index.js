@@ -128,7 +128,7 @@ function start() {
           case "lights":
             if (datapoint) {
               setDatapoint(type, name, datapoint, payload);
-            } else if (typeof payload === "object") {
+            } else if (typeof payload === "object" && payload !== null) {
               setLightState(name, payload);
             } else {
               setValue(type, name, payload);
@@ -138,7 +138,7 @@ function start() {
           case "groups":
             if (datapoint) {
               setDatapoint(type, name, datapoint, payload);
-            } else if (typeof payload === "object") {
+            } else if (typeof payload === "object" && payload !== null) {
               setGroupLightState(name, payload);
             } else {
               setValue(type, name, payload);
@@ -355,7 +355,7 @@ setInterval(() => {
 
 const getLights = throttle(
   function getLights() {
-    log.info("hue > getLights");
+    log.debug("hue > getLights");
 
     hue
       .lights()
