@@ -107,6 +107,8 @@ function start() {
     payload = payload.toString();
     log.info("mqtt <", topic, payload);
 
+    if (payload === null) return;
+
     if (payload.indexOf("{") !== -1) {
       try {
         payload = JSON.parse(payload);
